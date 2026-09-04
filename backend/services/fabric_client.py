@@ -14,6 +14,7 @@ def _build_cmd(pattern, youtube_url, spotify_url, scrape_url, model, vendor, tem
         cmd.extend(["-p", pattern])
     if youtube_url:
         cmd.extend(["-y", youtube_url])
+        cmd.extend(["--yt-dlp-args", "--sleep-requests 1 --sleep-interval 5 --max-sleep-interval 30"])
     elif spotify_url:
         cmd.extend(["--spotify", spotify_url])
     elif scrape_url:
@@ -26,7 +27,8 @@ def _build_cmd(pattern, youtube_url, spotify_url, scrape_url, model, vendor, tem
 async def get_youtube_metadata(url: str) -> tuple[str, str, str, str, str, str, str]:
     try:
         proc = await asyncio.create_subprocess_exec(
-            "yt-dlp", "--print", "title", "--print", "view_count", "--print", "timestamp",
+            "yt-dlp", "--sleep-requests", "1", "--sleep-interval", "5", "--max-sleep-interval", "30",
+            "--print", "title", "--print", "view_count", "--print", "timestamp",
             "--print", "channel", "--print", "channel_url", "--print", "channel_follower_count",
             "--print", "duration_string",
             url,
