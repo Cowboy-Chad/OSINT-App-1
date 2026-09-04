@@ -58,7 +58,7 @@ async def run_analysis_task(
             spotify_url=spotify_url,
             scrape_url=scrape_url,
             additional_args=additional_args,
-            model=model or None,
+            model=model_used,
         )
         elapsed = time.monotonic() - t0
 
