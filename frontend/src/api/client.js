@@ -1,5 +1,5 @@
 const RAW = import.meta.env.VITE_API_URL || ''
-const BASE = RAW ? RAW.replace(/\/+$/, '') : '/api'
+const BASE = RAW ? `${RAW.replace(/\/+$/, '')}/api` : '/api'
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
