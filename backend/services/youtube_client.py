@@ -1,5 +1,6 @@
 import asyncio
 import re
+import sys
 from typing import Optional
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import (
@@ -62,6 +63,10 @@ async def get_youtube_transcript(url: str) -> tuple[str, str, str, str, str]:
     except VideoUnavailable:
         return info["title"], info["channel"], info["channel_url"], "", "Video unavailable"
     except Exception as e:
+        print(f"[youtube_client] transcript fetch error for {url}: {type(e).__name__}: {e}", file=sys.stderr)
         return info["title"], info["channel"], info["channel_url"], "", f"Transcript error: {e}"
+
+    if not transcript or not transcript.strip():
+        return info["title"], info["channel"], info["channel_url"], "", "Empty transcript returned"
 
     return info["title"], info["channel"], info["channel_url"], transcript, ""

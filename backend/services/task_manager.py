@@ -61,18 +61,19 @@ async def run_analysis_task(
                 input_text=transcript_text,
                 model=model_used,
             )
+        elif youtube_url:
+            output = ""
+            err = youtube_transcript_err or "No transcript available"
+            cmd_str = ""
         else:
             output, err, cmd_str = await run_fabric(
                 pattern=pattern,
-                input_text=input_data if not any([youtube_url, spotify_url, scrape_url]) else None,
-                youtube_url=youtube_url if not youtube_transcript_err else None,
+                input_text=input_data if not any([spotify_url, scrape_url]) else None,
                 spotify_url=spotify_url,
                 scrape_url=scrape_url,
                 additional_args=additional_args,
                 model=model_used,
             )
-            if youtube_transcript_err and not output:
-                err = youtube_transcript_err
         elapsed = time.monotonic() - t0
 
         input_text_len = transcript_text or input_data or target or ""
@@ -80,7 +81,7 @@ async def run_analysis_task(
         output_t = estimate_tokens(output)
         i_cost, o_cost, t_cost = estimate_cost(model_used, input_t, output_t)
 
-        if title:
+        if title and output:
             header = f"[{title}]({youtube_url})"
             if view_count:
                 header += f"\nViews: {int(view_count):,}" if view_count.isdigit() else f"\nViews: {view_count}"
@@ -134,7 +135,7 @@ async def run_analysis_task(
                 header += f"\nEstimated Cost: {cost_str}"
             output = f"{header}\n{'-' * 40}\n\n{output}"
 
-        db_result.status = AnalysisStatus.COMPLETED if not err or not output else AnalysisStatus.FAILED
+        db_result.status = AnalysisStatus.COMPLETED if (output and not err) else AnalysisStatus.FAILED
         db_result.output_data = output
         db_result.error_message = err if err else None
         db_result.raw_fabric_command = cmd_str
