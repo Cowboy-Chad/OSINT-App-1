@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import AnalysisResult, AnalysisType, AnalysisStatus
 from services.fabric_client import run_fabric, run_fabric_with_input, get_youtube_metadata
-from config import OPENROUTER_MODEL
+from config import OPENROUTER_MODEL, YOUTUBE_COOKIES_BROWSER
 from pricing import estimate_cost
 
 
@@ -47,7 +47,7 @@ async def run_analysis_task(
         subs = ""
         duration = ""
         model_used = model or OPENROUTER_MODEL
-        if youtube_url:
+        if youtube_url and YOUTUBE_COOKIES_BROWSER:
             title, view_count, timestamp, channel, channel_url, subs, duration = await get_youtube_metadata(youtube_url)
 
         t0 = time.monotonic()

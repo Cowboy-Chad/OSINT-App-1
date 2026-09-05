@@ -5,9 +5,10 @@ from config import FABRIC_PATH, OPENROUTER_MODEL, OPENROUTER_VENDOR, DEFAULT_TEM
 
 
 def _build_ytdlp_args(youtube_cookies_browser: str) -> str:
-    args = "--sleep-requests 1 --sleep-interval 5 --max-sleep-interval 30 --write-auto-subs --sub-langs en --sub-format vtt"
     if youtube_cookies_browser:
-        args += f" --cookies-from-browser {youtube_cookies_browser}"
+        args = f"--sleep-requests 1 --sleep-interval 5 --max-sleep-interval 30 --cookies-from-browser {youtube_cookies_browser} --write-auto-subs --sub-langs en --sub-format vtt"
+    else:
+        args = "--sleep-requests 5 --sleep-interval 10 --max-sleep-interval 60 --write-auto-subs --sub-langs en --sub-format vtt"
     return args
 
 
@@ -33,9 +34,11 @@ def _build_cmd(pattern, youtube_url, spotify_url, scrape_url, model, vendor, tem
 
 async def get_youtube_metadata(url: str) -> tuple[str, str, str, str, str, str, str]:
     try:
-        cmd = ["yt-dlp", "--sleep-requests", "1", "--sleep-interval", "5", "--max-sleep-interval", "30"]
+        cmd = ["yt-dlp"]
         if YOUTUBE_COOKIES_BROWSER:
-            cmd.extend(["--cookies-from-browser", YOUTUBE_COOKIES_BROWSER])
+            cmd.extend(["--sleep-requests", "1", "--sleep-interval", "5", "--max-sleep-interval", "30", "--cookies-from-browser", YOUTUBE_COOKIES_BROWSER])
+        else:
+            cmd.extend(["--sleep-requests", "5", "--sleep-interval", "10", "--max-sleep-interval", "60"])
         cmd.extend(["--print", "title", "--print", "view_count", "--print", "timestamp",
             "--print", "channel", "--print", "channel_url", "--print", "channel_follower_count",
             "--print", "duration_string", url])
