@@ -5,8 +5,9 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import AnalysisResult, AnalysisType, AnalysisStatus
-from services.fabric_client import run_fabric, run_fabric_with_input, get_youtube_metadata
-from config import OPENROUTER_MODEL, YOUTUBE_COOKIES_BROWSER
+from services.fabric_client import run_fabric
+from services.youtube_client import get_youtube_transcript
+from config import OPENROUTER_MODEL
 from pricing import estimate_cost
 
 
@@ -47,22 +48,34 @@ async def run_analysis_task(
         subs = ""
         duration = ""
         model_used = model or OPENROUTER_MODEL
-        if youtube_url and YOUTUBE_COOKIES_BROWSER:
-            title, view_count, timestamp, channel, channel_url, subs, duration = await get_youtube_metadata(youtube_url)
+
+        transcript_text = None
+        youtube_transcript_err = None
+        if youtube_url:
+            title, channel, channel_url, transcript_text, youtube_transcript_err = await get_youtube_transcript(youtube_url)
 
         t0 = time.monotonic()
-        output, err, cmd_str = await run_fabric(
-            pattern=pattern,
-            input_text=input_data if not any([youtube_url, spotify_url, scrape_url]) else None,
-            youtube_url=youtube_url,
-            spotify_url=spotify_url,
-            scrape_url=scrape_url,
-            additional_args=additional_args,
-            model=model_used,
-        )
+        if youtube_url and transcript_text:
+            output, err, cmd_str = await run_fabric(
+                pattern=pattern,
+                input_text=transcript_text,
+                model=model_used,
+            )
+        else:
+            output, err, cmd_str = await run_fabric(
+                pattern=pattern,
+                input_text=input_data if not any([youtube_url, spotify_url, scrape_url]) else None,
+                youtube_url=youtube_url if not youtube_transcript_err else None,
+                spotify_url=spotify_url,
+                scrape_url=scrape_url,
+                additional_args=additional_args,
+                model=model_used,
+            )
+            if youtube_transcript_err and not output:
+                err = youtube_transcript_err
         elapsed = time.monotonic() - t0
 
-        input_text_len = input_data or target or ""
+        input_text_len = transcript_text or input_data or target or ""
         input_t = estimate_tokens(input_text_len)
         output_t = estimate_tokens(output)
         i_cost, o_cost, t_cost = estimate_cost(model_used, input_t, output_t)
