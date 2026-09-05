@@ -4,6 +4,13 @@ from typing import Optional
 from config import FABRIC_PATH, OPENROUTER_MODEL, OPENROUTER_VENDOR, DEFAULT_TEMPERATURE, YOUTUBE_COOKIES_BROWSER
 
 
+def _build_ytdlp_args(youtube_cookies_browser: str) -> str:
+    args = "--sleep-requests 1 --sleep-interval 5 --max-sleep-interval 30 --write-auto-subs --sub-langs en --sub-format vtt"
+    if youtube_cookies_browser:
+        args += f" --cookies-from-browser {youtube_cookies_browser}"
+    return args
+
+
 def _build_cmd(pattern, youtube_url, spotify_url, scrape_url, model, vendor, temperature, additional_args):
     cmd = [FABRIC_PATH]
     if vendor:
@@ -14,7 +21,7 @@ def _build_cmd(pattern, youtube_url, spotify_url, scrape_url, model, vendor, tem
         cmd.extend(["-p", pattern])
     if youtube_url:
         cmd.extend(["-y", youtube_url])
-        cmd.extend([f"--yt-dlp-args=--sleep-requests 1 --sleep-interval 5 --max-sleep-interval 30 --cookies-from-browser {YOUTUBE_COOKIES_BROWSER} --write-auto-subs --sub-langs en --sub-format vtt"])
+        cmd.extend([f"--yt-dlp-args={_build_ytdlp_args(YOUTUBE_COOKIES_BROWSER)}"])
     elif spotify_url:
         cmd.extend(["--spotify", spotify_url])
     elif scrape_url:
@@ -26,13 +33,14 @@ def _build_cmd(pattern, youtube_url, spotify_url, scrape_url, model, vendor, tem
 
 async def get_youtube_metadata(url: str) -> tuple[str, str, str, str, str, str, str]:
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "yt-dlp", "--sleep-requests", "1", "--sleep-interval", "5", "--max-sleep-interval", "30",
-            "--cookies-from-browser", YOUTUBE_COOKIES_BROWSER,
-            "--print", "title", "--print", "view_count", "--print", "timestamp",
+        cmd = ["yt-dlp", "--sleep-requests", "1", "--sleep-interval", "5", "--max-sleep-interval", "30"]
+        if YOUTUBE_COOKIES_BROWSER:
+            cmd.extend(["--cookies-from-browser", YOUTUBE_COOKIES_BROWSER])
+        cmd.extend(["--print", "title", "--print", "view_count", "--print", "timestamp",
             "--print", "channel", "--print", "channel_url", "--print", "channel_follower_count",
-            "--print", "duration_string",
-            url,
+            "--print", "duration_string", url])
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
